@@ -1,0 +1,14 @@
+//Create expose with endpoints
+kubectl expose deployment hr-web-app --type=NodePort --port=8080 --name=hr-web-app-service --dry-run=client -o yaml > hr-web-app-service.yaml
+
+
+//Use JSON PATH query to retrieve the osImages of all the nodes and store it in a file
+kubectl get nodes -o jsonpath='{.items[*].status.nodeInfo.osImage}' > /opt/outputs/nodes_os_x43kj56.txt
+
+
+
+//Expose the hr-web-app as service hr-web-app-service application on port 30082 on the nodes on the cluster.
+
+The web application listens on port 8080.
+
+kubectl expose deployment hr-web-app --type=NodePort --port=8080 --name=hr-web-app-service --dry-run=client -o yaml > hr-web-app-service.yaml

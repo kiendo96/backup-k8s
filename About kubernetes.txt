@@ -1,0 +1,154 @@
+1.Pod: Nơi chứa các container(có ip, hostname, tiến trình riêng). có thể chứa nhiều container cùng xử lý 1 công việc. Các container trong pod sẽ có chung một địa chỉ IP, chia sẽ cùng 1 volume
+
+
+*Các thành phần manifest pod:
+apiVersion: version of kubernetes
+kind: Chỉ định các thành phần cần tạo(Pod, Service, NodePort, Deployment)
+metadata: Tên của thành phần
+spec: Mô tả về các thông số kỹ thuật
+container: Chứa images của container cần chạy
+name: tên container
+containerPort: Cổng đầu ra ứng dụng của container
+Label: thẻ của container hoặc node. Có thể được đánh cho cả node và pod. 
+
+2.ReplicationController:Có tính năng đảm bảo sẽ tạo lại Pods mới thay thế khi có 1 pod bị lỗi hoặc chết. Duy trì số Pods đang chạy với số lượng được chỉ định trước (ít hơn sẽ tạo thêm pod mới, nhiều hơn sẽ xoá bớt pod thừa)
+*Cấu trúc ReplicationController:
+label selector: Xác định pod mà controller quản lí theo label
+replica count: Số lượng pod cần duy trì (replicas)
+pod template: Được hiểu là khuôn mẫu của pod để controller sử dụng để tạo pod mới khi cần
+
+VD:
+spec:
+  replicas: 3  //số pod cần duy trì
+  selector:
+  app: kubia 
+ template: 
+   metadata:
+     labels:
+       app: kubia //có nghĩa là áp dụng cho các pod có label là kubia
+
+template: là phần pod template, mô tả tên images, port để có thể chạy container trong pod lên
+
+3.Services: Cầu nối để các thành phần trong kubernetes tương tác với nhau
+- Cho phép sử dụng service tạo một điểm truy cập duy nhất đến các pods cung cấp cùng 1 dịch vụ. Mỗi services có địa chỉ IP và PORT duy nhất. client có thể kết nối đến IP và PORT của service. Sau đó chúng sẽ được điều hướng tới pod.
+Exams:
+
+apiVersion: v1
+kind: Service
+metadata:
+ name: kubia
+spec:
+ ports:
+ - port: 80
+ targetPort: 8080
+ selector:
+ app: kubia 
+
+port: 80 là cổng tương tác với service
+targetPort: 8080 là cổng của các container trong pods mà service sẽ điều hướng kết nối đến
+app:kubia: thể hiện các service tương tác với các  pods có label là kubia
+
+Phần spec chúng ta có thể thêm 1 số thành phần:
++ ClusterIP: Service chỉ có địa chỉ IP cục bộ và chỉ có thể truy cập được từ các thành phần trong cluster Kubernetes
++ NodePort: Service có thể tương tác qua Port của các Worker nodes trong cluster
++ LoadBlancer: Service có địa chỉ IP public, có thể tương tác ở bất cứ đâu
++ ExternalName: ánh xạ service với DNS Name
+
+
+
+4. Service NodePort
+CLUSTER_IP: là địa chỉ ip cục bộ trong kubernetes, với địa chỉ IP này thì các Pods hay Services có thể tương tắc với nhau nhưng bên ngoài không thể tương tác với các service thông qua nó được
+EXTERNAL_IP: IP public, có thể dùng để client bên ngoài tương tác với service
+
+Example:
+
+apiVersion: v1
+kind: Service
+metadata:
+ name: kubia-nodeport
+spec:
+ type: NodePort
+ ports:
+ - port: 80
+ targetPort: 8080
+ nodePort: 30123
+ selector:
+ app: kubia
+
+type: NodePort -> giúp các services có thể tương tác được từ bên ngoài thông qua port của worker node.
+nodePort: 30123 -> Port node worker được open
+targetPort: 8080 -> port của container bên trong
+port: 80 -> port service
+
+
+5.Service Loadbalancer
+- Kiểu LoadBlancer sẽ cung cấp thêm 1 địa chỉ IP public để client bên ngoài có thể gửi request đến địa chỉ ip public này (EXTERNAL_IP)
+
+6. ReplicaSets
+- Thay thế cho ReplicationController vì có nhiều tính năng hay hơn, có thể hình thành trực tiếp khi sử dụng services deploy
+
+7. Volume
+- volume là thành phần trực thuộc của Pod.
+- Volume được định nghĩa trong cấu hình file yaml khi khởi tạo các pod.
+- Các container có thể thực hiện mount dữ liệu bên trong container đến đối tượng volume thuộc cùng pods
+- Các loại volume hay dùng: nfs, persistenVolume
+- hotPath: dữ liệu được lưu trữ trong volume sẽ không bị mất đi khi pod bị lỗi vì nó được đặt ngoài pod (Trong hệ thống file worker node). 
+
+8. ConfigMap and Secrect
+- ConfigMap và Secrect là 2 loại volume giúp lưu trữ biến môi trường để dùng cho các container thuộc các pods khác nhau. 
+- ConfigMap sẽ dùng với các biến môi trường không chứa thông tin quá nhạy cảm, cần bí mật. 
+- Secrect được dùng để lưu trữ các biến môi trường quan trọng, nhạy cảm.
+
+
+Ex: ConfigMap:
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  creationTimestamp: 2017-12-27T18:36:28Z
+  name: game-config-env-file
+  namespace: default
+  resourceVersion: "809965"
+  uid: d9d1ca5b-eb34-11e7-887b-42010a8002b8
+data:
+  allowed: '"true"'
+  enemies: aliens
+  lives: "3"
+
+
+Ex: Secrect
+
+apiVersion: v1
+kind: Secret
+metadata:
+  name: mysecret
+type: Opaque
+data:
+  username: YWRtaW4=
+  password: MWYyZDFlMmU2N2Rm
+
+
+
+9. Deployment:
+- Thay vì viết manifest pod thì viết manifest Deployment sẽ ngon hơn. Vì nó có sẵn Replicaset. Dễ dàng upgrade, rollback phiên bản của ứng dụng
+
+
+Exams:
+
+apiVersion: apps/v1beta1 //Này không dùng được nữa
+kind: Deployment
+metadata:
+    name: kubia
+spec:
+ replicas: 3
+ template:
+     metadata:
+     name: kubia
+     labels:
+         app: kubia
+     spec:
+         containers:
+         - image: luksa/kubia:v1
+         name: nodejs
+
+

@@ -1,0 +1,57 @@
+a lot command in kubernetes:
+
+#kubectl rollout undo deploy/deployapp --to-revision=2 //back to old vision of deploy
+
+#kubectl rollout history deploy/deployapp //show history deploy
+
+#kubectl describe ...... //show thông tin 1 thứ gì đó
+
+
+#kubectl scale deploy/deployapp --replicas=10
+
+#kubectl get all -o wide //show all container
+
+
+#kubectl create secret tls secret-nginx-cert --cert=certs/tls.crt --key=certs/tls.key  //create a secret tls
+
+#kubectl get secret //show info secret
+#kubectl describe secret/secret-nginx-cert //show describe secret
+
+
+# Liệt kê các DaemonSet
+kubectl get ds -o wide
+
+# Liệt kê các POD theo nhãn
+kubectl get pod -o wide -l "app=ds-nginx"
+
+# Chi tiết về ds
+kubectl describe ds/dsapp
+
+# Xóa DaemonSet
+kubectl delete ds/dsapp
+
+# xóa taint trên node master.xtl cho phép tạo Pod
+kubectl taint node master.xtl node-role.kubernetes.io/master-
+
+# thêm taint trên node master.xtl ngăn tạo Pod trên nó
+kubectl taint nodes master.xtl node-role.kubernetes.io/master=false:NoSchedule
+
+//show job
+#kubectl get job -o wide
+
+//show describe job
+#kubectl describe job/myjob   //with myjob is name of job
+
+//show logs of job
+#kubectl logs pod/myjob-vzgsj
+
+//////Install HAProxy Ingress Controller
+#Tạo namespace có tên ingress-controller
+kubectl create ns ingress-controller
+kubectl apply -f https://haproxy-ingress.github.io/resources/haproxy-ingress.yaml
+# Gán thêm label cho các Node (ví dụ node worker2.xtl, worker1.xtl ...)
+kubectl label node master.xtl role=ingress-controller
+kubectl label node worker1.xtl role=ingress-controller
+kubectl label node worker2.xtl role=ingress-controller
+kubectl get all -n ingress-controller
+

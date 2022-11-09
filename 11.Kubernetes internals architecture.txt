@@ -1,0 +1,105 @@
+//Kiến trúc của kubernetes
+- Kubernetes gồm 2 thành phần chính:
++ master(control plane)
++ worker node
+
+- Woker node gồm 4 thành phần component:
++ etcd
++ API Server
++ controller manager
++ Scheduler
+
+- Kubernetes worker node sẽ bao gồm 3 thành phần chính:
++ kubelet
++ kube-proxy
++ container runtime
+
+- Một số add-on component phụ để enhance chức năng của k8s:
++ kubernetes DNS server
++ Dashboard
++ Ingress controller
++ Container Network interface network plugin
+
+- Các component giao tiếp với nhau thông qua API server, chúng không giao tiếp trực tiếp với nhau. API server là thành phần duy nhất tương tác với etcd. Không có component nào giao tiếp với etcd ngoài API server
+
+
+//etcd
+- ETCD là một database được dùng để lưu trữ những thông tin về các resource bên trong kubernetes. Etcd là database dạng key-value store và tất cả các component khác sẽ đọc và ghi dữ liệu vào etcd thông qua API server
+- etcd là 1 distributed storage(lưu trữ phân tán) nên etcd có thể có nhiều etcd database trong 1 cụm cluster để backup khi có 1 etcd down
+
+//API server
+- Đây là component trung tâm được sử dụng bởi các component khác hoặc client.
+- API server cung cấp một REST API để ta thực hiện các hành động CRUD(Create, Read, Update, Delete) lên cluster state( thông tin về toàn bộ resource trong cluster), đọc, ghi, thay đổi cluster state. Và lưu cluster state vào etcd
+- API server sẽ chịu trách nhiệm Authentication, Authorization client, validation config của resource, chuyển đổi resource thành dạng có thể lưu vào etcd. 
+
+// Authentication Plugins
+- Công việc đầu tiên của API server, nó sẽ thực hiện authentication với client thông qua một hay nhiều authentication plugins được config bên trong API server.
+- API server sẽ thực hiện các plugin này theo từng cái, cho tới khi nó xác định cái request này là của ai.
+- Token được sử dụng để thực hiện bước authentication này nằm ở trong deader với key là Authorzation. Các plugin này sẽ tách thông tin về username, user ID và groups bên trong token, nếu mọi thứ đúng thì request này sẽ được chuyển qua bước tiếp theo là authorization >< nếu sai sẽ trả về 403
+
+
+//Authorization plugins
+- Đây là công việc thư 2 của các API server, sau khi xác định được client là ai thì nó sẽ kiểm tra quyền của client này có được thực hiện trên 1 resource hay không thông qua các authorization plugins. Quyền này sẽ được thiết lập ở RBAC
+
+
+//Admission control plugin
+- Nếu một request mà thực hiện việc create,update hoặc delete resource thì nó sẽ được chuyển qua bước này
+
+//Validation resource và lưu vào etcd
+- Đây là bước mà sẽ kiểm tra config resource có đúng hay không, nếu có thì API server sẽ lưu resource này vào etcd, tương đương với việc resource đã được tạo ra
+==> API server không thực hiện việc tạo pod, replicaset, deploy. Tất cả những gì nó làm là lưu resource vào etcd, sau đó nó sẽ gửi thông báo tới component phục trách việc tạo ra resource đó
+
+//Controller Manager
+- Đây là component phụ trách việc create, delete, update,deploy các resource thông qua API server.
+- Component này sẽ chứa nhiều controller khác nhau, mỗi controller sẽ thực hiện một công việc riêng của nó. Một số controller như:
++ Replication controller
++ Deployment controller
++ statefulSet controller
+
+//Replication controllers
+- Đây là controller làm những công việc liên quan tới ReplicationController resource. Nó sẽ lắng nghe thông báo từ API server về những thứ thay đổi liên quan đến ReplicationController resource và theo dõi số lượng Pod hiện tại có bằng với thuộc tính replicas của nó không.
+- Khi phát hiện số lượng Pod ít hơn so với thuộc tính replicas của nó thì nó sẽ tạo một post request tới API server, để tạo một POd mới được tạo ra
+
+//Deployment controller
+- Đây là controller sẽ lắng nghe những thay đổi liên quan tới Deployment resource, đồng thời nó thực hiện các công việc như rollout update và quản lí các replicaSet bên dưới
+
+
+//StatefulSet Controller
+- Controller này cũng tương tự như replication controller, nó sẽ quản lí Pod, nhưng nó sẽ quản lí thêm PersistentVolumeClaim template cho mỗi Pod
+
+//Scheduler
+- Đây là component phụ trách việc sẽ chọn worker nào mà Pod sẽ được deploy tới
+- Nó sẽ lắng nghe API server về việc Pod nào đã được tạo ra và lưu vào ectd xong mà chưa có thuộc tính node.
+- Nó sẽ lựa chọn Node phù hợp sau đó update thuộc tính node của 
+
+//Scheduling algorithm đơn giản
+- Thuật toán mặc định để chọn worker node đơn giản là:
++ Chọn ra node có thể chấp nhận Pod từ những node có sẵn
++ Sắp xếp các node đó theo thứ tự ưu tiên và chọn node có thứ tự ưu tiên lớn nhất
+
+
+//Chọn ra node có thể chấp nhận Pod
+- Scheduler sẽ kiểm tra những tiêu chí sau:
++ Node đó có đáp ứng được request của pod về CPU hay memory hay không (Nghĩa là cpu và memory còn lại của node có đủ để chứa request của Pod hay không)
++ Node có chạy quá nhiều tài nguyên hay không
++ Node Pod mà cần một port trên worker node, thì xem port của worker node có được dùng chưa
++ Nếu pod có cấu hình volume, node có cấu hình volume phù hợp hay không
++ Xem xét pod afinity hoặ canti-affinity hoặc tolerate rule
+
+
+/////////Component in worker node///////
+
+//Kubelet
+- Đây là component sẽ chịu trách nhiệm tương tác với master node và quản lý container runtime
+- Khi join một worker node vào master, thì công việc đầu tiên của thằng kubelet này sẽ tạo ra một post request với body là node config tới API server để tạo ra một node resource
+
+
+//Kube proxy
+- Đây là component quản lý traffic và network của worker node mà liên quan tới Pod.
+- Gồm có 3 mode:
++ userspace
++ iptale
++ ipvs
+
+- iptable là một service của linux dùng để cấu hình firewall và cấu hình route đường đi của một request
+

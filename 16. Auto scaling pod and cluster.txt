@@ -1,0 +1,57 @@
+- Có 2 cách scale:
++ Horizontal scaling: Là cách scale mà ta sẽ tăng số lượng worker(application) đang sử lý công việc hiện tại ra nhiều hơn. Cụ thể là scale số lượng Pod để đáp ứng đủ yêu cầu. (Tăng số lượng replicas)
++ Vertical scaling: Là cách scale thay vì tăng số lượng worker lên thì ta sẽ tăng số lượng tài nguyên có thể sử dụng của application. Như là tăng số lượng cpu và memory của ứng dụng đó. (Tăng số lượng resouce requests và limits của pod). 
+
+//Horizontal pod autoscalling(HPA)
+- Là cách tăng replicas ở trong các scalable resource(Deployment, ReplicaSet, ReplicationController, hoặc StatefullSet) để Scale số lượng Pod.
+
+
+example:
+
+apiVersion: autoscaling/v2beta2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: micro-services-autoscale
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: microservice-user-products
+  minReplicas: 2
+  maxReplicas: 5
+  metrics:
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 70
+
+//Quá trình Autoscaling
+Quá trình autoscaling được chia thành 3 giao đoạn như sau:
+
+Thu thập metrics của tất cả các Pod được quản lý bởi scalable resource mà ta chỉ định trong HPA.
+Tính toán số lượng Pod cần thiết dựa vào metrics thu thập được.
+Cập nhật lại trường replicas của scalable resource.
+
+//Vertical pod autoscalling(VPA)
+- Tăng tài nguyên sử dụng của Pod
+VPA sẽ có 3 component như sau:
+
+- Recommender: component này sẽ monitor các tài nguyên đã tiêu thụ trước đó tài nguyên hiện tại để cung cấp giá trị cpu và memory requests gợi ý.
+- Updater: component này sẽ kiểm tra Pod được quản lý bởi scalable resource có cpu và memory đúng với giá trị của Recommender cung cấp ở trên hay không, nếu không, nó sẽ kill Pod đó và tạo lại Pod mới với cpu và memory requests đã được cập nhật đúng theo Recommender.
+- Admission Plugin: đây là admission plugin của VPA thêm vào các Admission Plugin có sẵn của API server, có nhiệm vụ sẽ thay đổi resource requests của Pod khi nó được tạo để đúng với giá trị của Recommender.
+
+
+//Cluster Autoscaler
+- Khi pod tạo ra mà không có node nào có thể chứa nó được nữa , Cluster Autoscaler sẽ tự động tạo thêm node
+- Cluster Autoscaler sẽ scale down một node khi:
++ Nhiều hơn một nửa capacity không được sử dụng, cộng tất cả request CPU và memory của Pod lại, nếu nhỏ hơn 50% là đúng với yêu cầu
++ Tất cả các Pod hiện tại của node đó, có thể được di chuyển qua node khác mà không gặp vấn đề gì.
++ Không có gì có thể ngăn chặn việc node đó bị xoá đi
++ Không còn pod nào mà không thể di chuyển còn ở trên node nó
+
+** Bật autoscalling trên GKE:
+$ gcloud container clusters update kubia --enable-autoscaling \
+--min-nodes=3 --max-nodes=5
+

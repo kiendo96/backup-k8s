@@ -1,0 +1,21 @@
+*Từ ver 0.18 auto enable RBAC on k8s. Ta có thể tạo role và gắn cho từng SA nhất định.
+
+1. Action
+- Các action có thể thực hiện với API server: HEAD, POST, PUT, PATCH, DELETE. Và những action này sẽ tương ứng với một verb trong khi dùng role
+
+
+Action		Verb
+HEAD, GET	get
+POST		create
+PUT		update
+PATCH		patch
+DELETE		delete
+
+
+RBAC resources:
+- role: Định nghĩa verb nào có thể được thực hiện trên namespace resource
+- clusterRoles: Định nghĩa verb nào có thể được thực hiện lên trên cluster resource
+- RoleBindings: gán Roles tới một SA
+- ClusterRoleBindings: gán ClusterRoles tới SA
+Điểm khác nhau của Roles và ClusterRoles là Roles là namespace resouce, nghĩa là nó sẽ thuộc về một namespace nào đó, và chỉ định nghĩa role cho SA trong một namespace. Còn ClusterRoles thì sẽ không thuộc namespace nào cả.
+

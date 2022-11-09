@@ -1,0 +1,105 @@
+- Sử dụng thuộc tính: resources.requests.cpu hoặc resources.request.memory để chỉ định các thuộc các chỉ số mặc định cho nó
+
+
+Cách scheduler sử dụng resource request để chọn node tốt nhất cho Pods:
+- LeastRequestedPriority: Sẽ chọn node có tổng resource request ít nhất, nghĩa là resource unalocated là nhiều nhất
+- MostRequestedPriority: sẽ chọn node có tổng resource request là cao nhất, nghĩa là resource unallocated là ít nhất
+-> Mặc định sử dụng LeastRequestedPriority. Ta có thể config để cluster chạy MostRequestedPriority thì resource của chúng ta sẽ sử dụng đều nhất có thể. Trên môi trường cloud provider ta sẽ sử dụng ít VM nhất có thể để giảm chi phí
+
+Limiting resources (i think should use it)
+- resources.limits.cpu
+- resources.limits.memory
+
+QoS classes(Sử dụng để đánh độ ưu tiên của pod)
+- Nếu 2 pod cùng chạy dẫn đến tràn ram của worker node thì pod nào có độ ưu tiên thấp hơn thì sẽ bị kill trước
+- Mức độ ưu tiên của QoS:
+	+ BestEffort (độ ưu tiên thấp nhất)
+	+ Burstable (độ ưu tiên trung bình)
+	+ Guaranteed (độ ưu tiên cao nhất)
+
+
+//LimitRange for namspace:
+- Tuy nhiên chỉ giới hạn các pod trong namspace chứ không giới hạn namespace
+Ex:
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: example
+spec:
+  limits:
+    - type: Pod
+      min:
+        cpu: 50m
+        memory: 5Mi
+      max:
+        cpu: 1
+        memory: 1Gi
+    - type: Container
+      defaultRequest:
+        cpu: 100m
+        memory: 10Mi
+      default:
+        cpu: 200m
+        memory: 100Mi
+      min:
+        cpu: 50m
+        memory: 5Mi
+      max:
+        cpu: 1
+        memory: 1Gi
+      maxLimitRequestRatio:
+        cpu: 4
+        memory: 10
+    - type: PersistentVolumeClaim
+      min:
+        storage: 1Gi
+      max:
+        storage: 10Gi
+
+//ResourceQuota: giới hạn tài nguyên của một namespace
+ex:
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: cpu-and-mem
+  namespace: default
+spec:
+  hard:
+    requests.cpu: 400m
+    requests.memory: 200Mi
+    limits.cpu: 600m
+    limits.memory: 500Mi
+    requests.storage: 500Gi
+    ssd.storageclass.storage.k8s.io/requests.storage: 200Gi
+    standard.storageclass.storage.k8s.io/requests.storage: 300Gi
+
+//Giới hạn ResourceQuota cho resource
+- Những resource mà ResourceQuota có thể tạo:
++ Pod
++ ReplicationController
++ Secrets
++ ConfigMaps
++ PresistentVolumeClaims
++ Services: Có thể chỉ định rõ số lượng LoadBalancer Services và NodePort Services
+
+
+//Quota scope cho Pod
+- Có 4 thuộc tính dùng để chỉ định Quota có được áp dụng đến nó hay không:
++ BestEffort: Chỉ ảnh hưởng tới Pod với QoS class là BestEffort
++ NotBestEffort: Chỉ ảnh hưởng tới Pod với QoS class là Burstable và Guarantee
++ Terminating: Chỉ ảnh hưởng tới Pod có thuộc tính activeDeadlineSeconds
++ NotTerminating: Chỉ ảnh hưởng tới Pod không có thuộc tính activeDeadlineSeconds
+
+Example:
+
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: besteffort-notterminating-pods
+spec:
+  scopes:
+    - BestEffort
+    - NotTerminating
+  hard:
+    pods: 4
+

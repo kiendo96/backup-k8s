@@ -1,0 +1,19 @@
+//Taints và tolerations:
+Taint: Được dùng để cấm một thằng pod được deploy tới worker node mà có taints. Ta sẽ dùng câu lệnh để đánh taint vào trong một worker node.
+
+Tolerations: Được dùng để gán vào pod và những pod nào mà được gán tolerations thoả mãn với điều kiện taints thì sẽ được deploy lên nhũng worker node mà có gán taints.
+
+format taints: <key>=<value>:<effect>
+Ex: node-role.kubernetes.io/master:NoSchedule (trên master node)
+
+
+
+//Taint effect:
+- Trong taints và tolerations thì giá trị của key và value chỉ là string mà thôi. Nhưng giá trị efect thì khác, ta sẽ có những effect sau:
++ NoSchedule: Khi giá trị này được gán vào taints, nó sẽ không cho phép pod được deploy lên
++ PreferNoSchedule: Giá trị này cũng có tác dụng giống như NoSchedule, Nhưng khác biệt một điểm là nếu Pod không thể được deploy tới bất kì node nào, mà node với effect là PreferNoShedule có đủ tài nguyên để chạy pod, thì pod có thể được deploy lên nó
++ NoExecute: Không giống như NoSchedule và PreferNoSchedule mà NoExcute chỉ có tác dụng khi pod được scheduling, thì giá trị effect này ảnh hưởng lên cả pod và đang chạy trên node, nếu pod không có tolerations phù hợp với tains thì nó cũng sẽ bị gỡ khỏi node đó.
+
+
+//Thêm Tains vào node:
+Ex: kubectl taint node worker1 node-type=worker:NoSchedule

@@ -1,0 +1,4 @@
+New-VMSwitch -SwitchName NATGlobal -SwitchType InterNal
+Get-NetAdapter
+New-NetIPAddress -IPAddress 172.16.1.1 -PrefixLength 24 -InterfaceIndex 29
+New-NetNat -Name NATGlobal -InternalIPInterfaceAddressPrefix 172.16.1.0/24

@@ -1,0 +1,85 @@
+clusterIP: is the default approach when creating a Kube Service (internal IP)
+Target Ports: allows us to separate the port the application is listening on (kiểu port lắng nghe của các pods bên trong node)
+NodePort: gán port cố định bên ngoài
+External IPs
+Load Balance
+
+
+target port:nodeport
+
+
+
+
+CONTAINERS NETWORK POD
+
+Có 4 options network:
+- Closed containers( Chỉ sử dụng nội bộ container)
+- Bridged containers( Có thể connect to internet)
+- Joined containers
+- Open containers( open luôn #hostNetwork)
+
+USE CONTAINER'S SECURITY CONTEXT
+- Chỉ định user khi chạy container
++ Default chạy với quyền user root(toàn quyền)
++ Sử dụng securityContext.runAsUser:1000 (Chạy với user được cho volume)
++ Ngăn chặn container chạy root user (securityContext.runAsNonRoot:true)
++ Chạy Pod với Privileged mode( securityContext.privileged: true)
++ Thêm kernel câpbilites riêng lẽ cho container
+ex:
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pod-add-settime-capability
+spec:
+  containers:
+    - name: main
+      image: alpine
+      command: ["/bin/sleep", "999999"]
+      securityContext:
+        capabilities:
+          add: # use add
+            - SYS_TIME # add the SYS_TIME capability.
+
+
++ Chặn process có thể ghi vào trong filesystem của container (securityContext.readOnlyRootFilesystem:true)
+
+PodSecurityPolicy:
+*PodSecurityPolicy có thể định nghĩa các policy như sau:
+- Pod có thể sử dụng host IPC, PID, hotNetwork hay không
+- UserID nào container có thể sử dụng
+- Có thể sử udnjg privileged mode hay không
+- Những kernel câpbilites nào được cho phép
+- Container có thể xài thuộc tính readOnlyRootFilesystem hay không
+- Pod có thể dùng volume gì
+
+
+Security network: Sử dụng NetworkPolicy để đặt các rule cho namespace
+
+- Ngăn chặn toàn bộ traffic vào Pod trong 1 namespace:
+Ex:
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny
+  namespace: default
+spec:
+  podSelector: # select all pod
+
+- Cho phép vài Pod trong namespace kết nối với nhau:
+ex:
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: postgres-netpolicy
+  namespace: default
+spec:
+  podSelector:
+    matchLabels: # This policy secures access to pods with app=database label
+      app: database 
+  ingress:
+    - from:
+      - podSelector: 
+          matchLabels: # It allows incoming connections only from pods with the app=webserver label
+            app: webserver
+      ports:
+        - port: 5432 # Only allow port 5432

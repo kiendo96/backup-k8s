@@ -1,0 +1,23 @@
+$ chart=jenkinsci/jenkins
+$ helm install jenkins -n jenkins -f jenkins-values.yaml $chart
+
+helm uninstall jenkins -n jenkins
+
+kubectl get all,pv,pvc -owide -n jenkins
+
+kubectl logs -f jenkins-0 -c init -n jenkins
+
+helm install jenkins jenkinsci/jenkins -n jenkins -f jenkins-value.yaml
+helm uninstall jenkins -n jenkins
+
+kubectl delete -f jenkins-volume.yaml
+kubectl apply -f jenkins-volume.yaml
+
+
+curl -v -X GET http://192.168.235.178:8080/crumbIssuer/api/json --user admin:6z0cLygziw0wrpEHUviZps
+
+
+aef0a25cdd3f1febf267830cdfee1c7dec3512957f308350c5b944817e9d96cb
+
+curl -X POST http://192.168.235.178:8080/job/abc/build --user admin:6z0cLygziw0wrpEHUviZps -H 'Jenkins-Crumb: aef0a25cdd3f1febf267830cdfee1c7dec3512957f308350c5b944817e9d96cb'
+

@@ -1,0 +1,32 @@
+1. EmptyDir Volume: Để share data giữa các container bên trong pod
+
+2. Sử dụng hostPath để truy cập worker node
+
+-> hostPath sẽ tạo 1 mount point từ Pod ra ngoài filesystem của node.
+-> Dữ liệu lưu trong volume này chỉ tồn tại trên một woker node và không bị xoá đi khi pod bị xoá
+3. Cloud để lưu trữ persistent data:
+
+
+Ex:
+apiVersion: v1
+kind: Pod
+metadata:
+  name: mongodb
+spec:
+  containers:
+    - image: mongo
+      name: mongodb
+      ports:
+        - containerPort: 27017
+          protocol: TCP
+      volumeMounts:
+        - name: mongodb-data
+          mountPath: /data/db
+  volumes:
+    - name: mongodb-data
+      awsElasticBlockStore: # google cloud disk volume
+        pdName: mongodb # name of the persistent disk on google cloud
+        fsType: ext4
+
+
+7. PersistentVolumeClaims

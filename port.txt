@@ -1,0 +1,10 @@
+#kubectl expose deployment http --external-ip="172.17.0.22" --port=8000 --target-port=80
+expose=8000 => port expose 
+#kubectl get all -o wide //Có thể thấy port hiển tại tại đây
+
+kubectl run httpexposed --image=katacoda/docker-http-server:latest --replicas=1 --port=80 --hostport=8001 //Để triển khai 1 port thứ 2 ánh xạ lên cổng 8001
+//Port này không thể kiểm tra tại: kubectl get svc
+#docker ps | grep httpexposed // Use this command can see port expose
+
+
+#kubect descibe svc http //show descibe of a svc have more container
